@@ -36,12 +36,12 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_BothUsersExistAndAreNotFriends_UserIdsAddedToFriendsTableWithNumericallySmallerIdAsUser1Id()
     {
-        $user1 = User::create([
+        $andy = User::create([
             'name' => 'Andy',
             'email' => 'andy@example.com',
             'password' => bcrypt('secret')
         ]);
-        $user2 = User::create([
+        $john = User::create([
             'name' => 'John',
             'email' => 'john@example.com',
             'password' => bcrypt('secret')
@@ -51,12 +51,12 @@ class FriendsMgmtApiTest extends TestCase
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
 
-        $this->assertTrue($user1->id < $user2->id);
+        $this->assertTrue($andy->id < $john->id);
         $this->assertDatabaseHas('friends', [
-            'user1_id' => $user1->id, 'user2_id' => $user2->id
+            'user1_id' => $andy->id, 'user2_id' => $john->id
         ]);
         $this->assertDatabaseMissing('friends', [
-            'user1_id' => $user2->id, 'user2_id' => $user1->id
+            'user1_id' => $john->id, 'user2_id' => $andy->id
         ]);
     }
 
@@ -109,17 +109,17 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_BothUsersExistButAreAlreadyFriends_ReturnsFalse()
     {
-        $user1 = User::create([
+        $andy = User::create([
             'name' => 'Andy',
             'email' => 'andy@example.com',
             'password' => bcrypt('secret')
         ]);
-        $user2 = User::create([
+        $john = User::create([
             'name' => 'John',
             'email' => 'john@example.com',
             'password' => bcrypt('secret')
         ]);
-        Friend::create(['user1_id' => $user1->id, 'user2_id' => $user2->id]);
+        Friend::create(['user1_id' => $andy->id, 'user2_id' => $john->id]);
 
         $response = $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -163,17 +163,17 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetFriendsList_UserExistsAndHasOneFriend_ReturnsCorrectJson()
     {
-        $user1 = User::create([
+        $andy = User::create([
             'name' => 'Andy',
             'email' => 'andy@example.com',
             'password' => bcrypt('secret')
         ]);
-        $user2 = User::create([
+        $john = User::create([
             'name' => 'John',
             'email' => 'john@example.com',
             'password' => bcrypt('secret')
         ]);
-        Friend::create(['user1_id' => $user1->id, 'user2_id' => $user2->id]);
+        Friend::create(['user1_id' => $andy->id, 'user2_id' => $john->id]);
 
         $response = $this->json('GET', '/api/v1/friends-list', [
             'email' => 'andy@example.com'
@@ -201,24 +201,24 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetFriendsList_UserExistsAndHasMultipleFriends_ReturnsCorrectJson()
     {
-        $user1 = User::create([
+        $andy = User::create([
             'name' => 'Andy',
             'email' => 'andy@example.com',
             'password' => bcrypt('secret')
         ]);
-        $user2 = User::create([
+        $john = User::create([
             'name' => 'John',
             'email' => 'john@example.com',
             'password' => bcrypt('secret')
         ]);
-        $user3 = User::create([
+        $common = User::create([
             'name' => 'Common',
             'email' => 'common@example.com',
             'password' => bcrypt('secret')
         ]);
-        Friend::create(['user1_id' => $user1->id, 'user2_id' => $user2->id]);
-        Friend::create(['user1_id' => $user1->id, 'user2_id' => $user3->id]);
-        Friend::create(['user1_id' => $user2->id, 'user2_id' => $user3->id]);
+        Friend::create(['user1_id' => $andy->id, 'user2_id' => $john->id]);
+        Friend::create(['user1_id' => $andy->id, 'user2_id' => $common->id]);
+        Friend::create(['user1_id' => $john->id, 'user2_id' => $common->id]);
 
         $response = $this->json('GET', '/api/v1/friends-list', [
             'email' => 'andy@example.com'
