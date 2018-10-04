@@ -31,13 +31,13 @@ class FriendsMgmtController extends Controller
             return response('', 400);
         }
 
-        $successJson = json_encode(array('success' => true));
-        $failureJson = json_encode(array('success' => false));
+        $successArr = array('success' => true);
+        $failureArr = array('success' => false);
 
         $user1 = User::where('email', $data['friends'][0])->first();
         $user2 = User::where('email', $data['friends'][1])->first();
         if ($user1 == null || $user2 == null || $user1->id == $user2->id) {
-            return $failureJson;
+            return response()->json($failureArr);
         }
 
         // This ensures that when we insert a record into the friends table,
@@ -53,11 +53,11 @@ class FriendsMgmtController extends Controller
             'user2_id' => $user2->id
         ])->first();
         if ($friendRecord != null) {
-            return $failureJson;
+            return response()->json($failureArr);
         }
         Friend::create(['user1_id' => $user1->id, 'user2_id' => $user2->id]);
 
-        return $successJson;
+        return response()->json($successArr);
     }
 
     /**
@@ -76,11 +76,11 @@ class FriendsMgmtController extends Controller
             return response('', 400);
         }
 
-        $failureJson = json_encode(array('success' => false));
+        $failureArr = array('success' => false);
 
         $user = User::where('email', $data['email'])->first();
         if ($user == null) {
-            return $failureJson;
+            return response()->json($failureArr);
         }
 
         $friendRecords = Friend::where([
@@ -98,13 +98,13 @@ class FriendsMgmtController extends Controller
             array_push($friendsList, $friendEmail);
         }
 
-        $responseArray = array(
+        $successArr = array(
             'success' => true,
             'friends' => $friendsList,
             'count' => count($friendsList)
         );
+        return response()->json($successArr);
+    }
 
-        $successJson = json_encode($responseArray);
-        return $successJson;
     }
 }
