@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\User;
 use App\Friend;
+use App\Subscription;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -500,6 +501,184 @@ class FriendsMgmtApiTest extends TestCase
 
         $response = $this->json('GET', '/api/v1/common-friends-list', [
             'friends' => ['andy@example.com', 123456]
+        ]);
+        $response->assertStatus(400);
+    }
+
+    /** @test */
+    public function Subscribe_RequestorIsNotSubscribedToTarget_ReturnsTrue()
+    {
+        User::create([
+            'name' => 'Lisa',
+            'email' => 'lisa@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        User::create([
+            'name' => 'Kate',
+            'email' => 'kate@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => 'kate@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => true,]);
+    }
+
+    /** @test */
+    public function Subscribe_RequestorIsNotSubscribedToTarget_UserIdsAddedToSubscriptionsTable()
+    {
+        $lisa = User::create([
+            'name' => 'Lisa',
+            'email' => 'lisa@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $kate = User::create([
+            'name' => 'Kate',
+            'email' => 'kate@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => 'kate@example.com'
+        ]);
+
+        $this->assertDatabaseHas('subscriptions', [
+            'requestor_id' => $lisa->id,
+            'target_id' => $kate->id
+        ]);
+    }
+
+    /** @test */
+    public function Subscribe_RequestorIsAlreadySubscribedToTarget_ReturnsFalse()
+    {
+        $lisa = User::create([
+            'name' => 'Lisa',
+            'email' => 'lisa@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $kate = User::create([
+            'name' => 'Kate',
+            'email' => 'kate@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Subscription::create([
+            'requestor_id' => $lisa->id ,
+            'target_id' => $kate->id
+        ]);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => 'kate@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function Subscribe_RequestorIsSamePersonAsTarget_ReturnsFalse()
+    {
+        User::create([
+            'name' => 'Lisa',
+            'email' => 'lisa@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => 'lisa@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function Subscribe_AtLeastOneUserDoesntExist_ReturnsFalse()
+    {
+        User::create([
+            'name' => 'Lisa',
+            'email' => 'lisa@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        User::create([
+            'name' => 'Kate',
+            'email' => 'kate@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'nonexistent@example.com',
+            'target' => 'kate@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => 'nonexistent@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function Subscribe_InvalidInput_ReturnsStatus400()
+    {
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'target' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'subscriber' => 'lisa@example.com',
+            'target' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => ['lisa@example.com', 'kate@example.com'],
+            'target' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => ['john@example.com', 'kate@example.com']
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 123456,
+            'target' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => 123456
+        ]);
+        $response->assertStatus(400);
+    }
+
+    /** @test */
+    public function Subscribe_InputContentTypeIsNotJson_ReturnsStatus400()
+    {
+        $response = $this->post('/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => 'kate@example.com'
         ]);
         $response->assertStatus(400);
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\User;
 use App\Friend;
+use App\Subscription;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
@@ -160,6 +161,55 @@ class FriendsMgmtController extends Controller
             'friends' => $commonFriends,
             'count' => count($commonFriends)
         );
+        return response()->json($successArr);
+    }
+
+    /**
+     * Subscribe the requestor specified in the given request to the target
+     * specified in the given request.
+     *
+     * @param  Request $request
+     * @return Response
+     */
+    public function subscribe(Request $request)
+    {
+        if (!$request->isJson()) {
+            return response('', 400);
+        }
+
+        $data = $request->input();
+        if ($data == null
+            || !array_key_exists('requestor', $data)
+            || !array_key_exists('target', $data)
+            || !is_string($data['requestor'])
+            || !is_string($data['target'])
+        ) {
+            return response('', 400);
+        }
+
+        $successArr = array('success' => true);
+        $failureArr = array('success' => false);
+
+        $requestor = User::where('email', $data['requestor'])->first();
+        $target = User::where('email', $data['target'])->first();
+        if ($requestor == null
+            || $target == null
+            || $requestor->id == $target->id
+        ) {
+            return response()->json($failureArr);
+        }
+
+        $subscriptionRecord = Subscription::where([
+            'requestor_id' => $requestor->id, 'target_id' => $target->id
+        ])->first();
+        if ($subscriptionRecord != null) {
+            return response()->json($failureArr);
+        }
+
+        Subscription::create([
+            'requestor_id' => $requestor->id,
+            'target_id' => $target->id
+        ]);
         return response()->json($successArr);
     }
 }
