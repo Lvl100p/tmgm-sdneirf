@@ -148,5 +148,15 @@ class FriendsMgmtApiTest extends TestCase
             ]
         ]);
         $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/make-friends', [
+            'friends' => [123456, 'john@example.com']
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/make-friends', [
+            'friends' => ['andy@example.com', 123456]
+        ]);
+        $response->assertStatus(400);
     }
 }

@@ -19,8 +19,10 @@ class FriendsMgmtController extends Controller
     {
         $data = json_decode($request->getContent(), true);
         if (!array_key_exists('friends', $data)
-            || count($data['friends']) != 2)
-        {
+            || count($data['friends']) != 2
+            || !is_string($data['friends'][0])
+            || !is_string($data['friends'][1])
+        ) {
             return response('', 400);
         }
 
