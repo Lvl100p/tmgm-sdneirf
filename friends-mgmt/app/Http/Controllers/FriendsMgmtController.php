@@ -17,7 +17,7 @@ class FriendsMgmtController extends Controller
      */
     public function makeFriends(Request $request)
     {
-        $data = json_decode($request->getContent(), true);
+        $data = $request->input();
         if ($data == null
             || !array_key_exists('friends', $data)
             || count($data['friends']) != 2
@@ -64,7 +64,7 @@ class FriendsMgmtController extends Controller
      */
     public function getFriendsList(Request $request)
     {
-        $data = json_decode($request->getContent(), true);
+        $data = $request->input();
         if ($data == null
             || !array_key_exists('email', $data)
             || !is_string($data['email'])
