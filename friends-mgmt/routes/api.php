@@ -18,3 +18,5 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 Route::post('/v1/make-friends', 'FriendsMgmtController@makeFriends');
+
+Route::get('/v1/friends-list', 'FriendsMgmtController@getFriendsList');

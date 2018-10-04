@@ -54,4 +54,51 @@ class FriendsMgmtController extends Controller
 
         return $successJson;
     }
+
+    /**
+     * Get the friends list for the user specified in the given request.
+     *
+     * @param  Request $request
+     * @return Response
+     */
+    public function getFriendsList(Request $request)
+    {
+        $data = json_decode($request->getContent(), true);
+        if (!array_key_exists('email', $data)
+            || !is_string($data['email'])
+        ) {
+            return response('', 400);
+        }
+
+        $failureJson = json_encode(array('success' => false));
+
+        $user = User::where('email', $data['email'])->first();
+        if ($user == null) {
+            return $failureJson;
+        }
+
+        $friendRecords = Friend::where([
+            'user1_id' => $user->id,
+        ])->orWhere([
+            'user2_id' => $user->id,
+        ])->get();
+
+        $friendsList = [];
+        foreach ($friendRecords as $friendRecord) {
+            $friendId = $friendRecord->user1_id == $user->id
+                ? $friendRecord->user2_id
+                : $friendRecord->user1_id;
+            $friendEmail = User::where('id', $friendId)->first()->email;
+            array_push($friendsList, $friendEmail);
+        }
+
+        $responseArray = array(
+            'success' => true,
+            'friends' => $friendsList,
+            'count' => count($friendsList)
+        );
+
+        $successJson = json_encode($responseArray);
+        return $successJson;
+    }
 }
