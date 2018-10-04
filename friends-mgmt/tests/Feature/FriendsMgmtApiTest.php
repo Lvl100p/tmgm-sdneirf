@@ -30,7 +30,7 @@ class FriendsMgmtApiTest extends TestCase
         ]);
         $response
             ->assertStatus(200)
-            ->assertJson(['success' => true,]);
+            ->assertExactJson(['success' => true,]);
     }
 
     /** @test */
@@ -74,7 +74,7 @@ class FriendsMgmtApiTest extends TestCase
         ]);
         $response
             ->assertStatus(200)
-            ->assertJson(['success' => false,]);
+            ->assertExactJson(['success' => false,]);
     }
 
     /** @test */
@@ -96,14 +96,14 @@ class FriendsMgmtApiTest extends TestCase
         ]);
         $response
             ->assertStatus(200)
-            ->assertJson(['success' => false,]);
+            ->assertExactJson(['success' => false,]);
 
         $response = $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'nonexistent@example.com']
         ]);
         $response
             ->assertStatus(200)
-            ->assertJson(['success' => false,]);
+            ->assertExactJson(['success' => false,]);
     }
 
     /** @test */
@@ -126,7 +126,7 @@ class FriendsMgmtApiTest extends TestCase
         ]);
         $response
             ->assertStatus(200)
-            ->assertJson(['success' => false,]);
+            ->assertExactJson(['success' => false,]);
     }
 
     /** @test */
