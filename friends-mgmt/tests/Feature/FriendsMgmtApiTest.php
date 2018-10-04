@@ -303,4 +303,204 @@ class FriendsMgmtApiTest extends TestCase
         ]);
         $response->assertStatus(400);
     }
+
+    /** @test */
+    public function GetCommonFriendsList_NoFriendsInCommon_ReturnsCorrectJson()
+    {
+        User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['andy@example.com', 'john@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'friends' => [],
+                'count' => 0
+            ]);
+    }
+
+    /** @test */
+    public function GetCommonFriendsList_OneFriendInCommon_ReturnsCorrectJson()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $common = User::create([
+            'name' => 'Common',
+            'email' => 'common@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Friend::create(['user1_id' => $andy->id, 'user2_id' => $common->id]);
+        Friend::create(['user1_id' => $john->id, 'user2_id' => $common->id]);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['andy@example.com', 'john@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'friends' => ['common@example.com'],
+                'count' => 1
+            ]);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['john@example.com', 'andy@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'friends' => ['common@example.com'],
+                'count' => 1
+            ]);
+    }
+
+    /** @test */
+    public function GetCommonFriendsList_MultipleFriendsInCommon_ReturnsCorrectJson()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $common1 = User::create([
+            'name' => 'Common1',
+            'email' => 'common1@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $common2 = User::create([
+            'name' => 'Common2',
+            'email' => 'common2@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Friend::create(['user1_id' => $andy->id, 'user2_id' => $common1->id]);
+        Friend::create(['user1_id' => $andy->id, 'user2_id' => $common2->id]);
+        Friend::create(['user1_id' => $john->id, 'user2_id' => $common1->id]);
+        Friend::create(['user1_id' => $john->id, 'user2_id' => $common2->id]);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['andy@example.com', 'john@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'friends' => ['common1@example.com', 'common2@example.com'],
+                'count' => 2
+            ]);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['john@example.com', 'andy@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'friends' => ['common1@example.com', 'common2@example.com'],
+                'count' => 2
+            ]);
+    }
+
+    /** @test */
+    public function GetCommonFriendsList_BothUsersExistAndAreSamePerson_ReturnsFalse()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['andy@example.com', 'andy@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function GetCommonFriendsList_AtLeastOneUserDoesntExist_ReturnsFalse()
+    {
+        User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['andy@example.com', 'nonexistent@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['nonexistent@example.com', 'john@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function GetCommonFriendsList_InvalidInput_ReturnsStatus400()
+    {
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['andy@example.com']
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => [
+                'andy@example.com',
+                'john@example.com',
+                'kate@example.com'
+            ]
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'enemies' => ['andy@example.com', 'john@example.com']
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => [123456, 'andy@example.com']
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/common-friends-list', [
+            'friends' => ['andy@example.com', 123456]
+        ]);
+        $response->assertStatus(400);
+    }
 }

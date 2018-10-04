@@ -106,5 +106,60 @@ class FriendsMgmtController extends Controller
         return response()->json($successArr);
     }
 
+    /**
+     * Get the common friends list for both users specified in the given
+     * request.
+     *
+     * @param  Request $request
+     * @return Response
+     */
+    public function getCommonFriendsList(Request $request)
+    {
+        $data = $request->input();
+        if ($data == null
+            || !array_key_exists('friends', $data)
+            || count($data['friends']) != 2
+            || !is_string($data['friends'][0])
+            || !is_string($data['friends'][1])
+        ) {
+            return response('', 400);
+        }
+
+        $failureArr = array('success' => false);
+
+        $user1 = User::where('email', $data['friends'][0])->first();
+        $user2 = User::where('email', $data['friends'][1])->first();
+        if ($user1 == null || $user2 == null || $user1->id == $user2->id) {
+            return response()->json($failureArr);
+        }
+
+        $request->merge([
+            'email' => $data['friends'][0]
+        ]);
+        $user1FriendsList = json_decode(
+            $this->getFriendsList($request)->content(), true
+        )['friends'];
+
+        $commonFriends = [];
+        foreach ($user1FriendsList as $user1Friend) {
+            $user1FriendId = User::where('email', $user1Friend)->first()->id;
+            $smallerId = $user2->id < $user1FriendId
+                ? $user2->id
+                : $user1FriendId;
+            $largerId = $smallerId == $user2->id ? $user1FriendId : $user2->id;
+            $friendRecord = Friend::where([
+                'user1_id' => $smallerId, 'user2_id' => $largerId
+            ])->first();
+            if ($friendRecord != null) {
+                array_push($commonFriends, $user1Friend);
+            }
+        }
+
+        $successArr = array(
+            'success' => true,
+            'friends' => $commonFriends,
+            'count' => count($commonFriends)
+        );
+        return response()->json($successArr);
     }
 }
