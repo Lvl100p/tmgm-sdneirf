@@ -246,7 +246,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetFriendsList_UserExistsAndHasNoFriends_ReturnsCorrectJson()
     {
-        $user1 = User::create([
+        User::create([
             'name' => 'Andy',
             'email' => 'andy@example.com',
             'password' => bcrypt('secret')
