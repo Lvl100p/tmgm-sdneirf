@@ -17,6 +17,10 @@ class FriendsMgmtController extends Controller
      */
     public function makeFriends(Request $request)
     {
+        if (!$request->isJson()) {
+            return response('', 400);
+        }
+
         $data = $request->input();
         if ($data == null
             || !array_key_exists('friends', $data)

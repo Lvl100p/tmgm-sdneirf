@@ -161,6 +161,15 @@ class FriendsMgmtApiTest extends TestCase
     }
 
     /** @test */
+    public function MakeFriends_InputContentTypeIsNotJson_ReturnsStatus400()
+    {
+        $response = $this->post('/api/v1/make-friends', [
+            'friends' => ['andy@example.com', 'john@example.com']
+        ]);
+        $response->assertStatus(400);
+    }
+
+    /** @test */
     public function GetFriendsList_UserExistsAndHasOneFriend_ReturnsCorrectJson()
     {
         $andy = User::create([
