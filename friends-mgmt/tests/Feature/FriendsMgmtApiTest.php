@@ -128,6 +128,13 @@ class FriendsMgmtApiTest extends TestCase
         $response
             ->assertStatus(200)
             ->assertExactJson(['success' => false,]);
+
+        $response = $this->json('POST', '/api/v1/make-friends', [
+            'friends' => ['john@example.com', 'andy@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
     }
 
     /** @test */
