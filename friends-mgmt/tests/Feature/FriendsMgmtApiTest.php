@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\User;
 use App\Friend;
 use App\Subscription;
+use App\Block;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -175,6 +176,36 @@ class FriendsMgmtApiTest extends TestCase
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $response->assertStatus(400);
+    }
+
+    /** @test */
+    public function MakeFriends_AtLeastOneUserIsBlockedByOther_ReturnsFalse()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Block::create(['requestor_id' => $andy->id, 'target_id' => $john->id]);
+
+        $response = $this->json('POST', '/api/v1/make-friends', [
+            'friends' => ['andy@example.com', 'john@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+
+        $response = $this->json('POST', '/api/v1/make-friends', [
+            'friends' => ['john@example.com', 'andy@example.com']
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
     }
 
     /** @test */
@@ -686,6 +717,240 @@ class FriendsMgmtApiTest extends TestCase
         $response = $this->post('/api/v1/subscribe', [
             'requestor' => 'lisa@example.com',
             'target' => 'kate@example.com'
+        ]);
+        $response->assertStatus(400);
+    }
+
+    /** @test */
+    public function Block_RequestorHasNotBlockedTarget_ReturnsTrue()
+    {
+        User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => 'john@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => true,]);
+    }
+
+    /** @test */
+    public function Block_RequestorHasNotBlockedTarget_UserIdsAddedToBlocksTable()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => 'john@example.com'
+        ]);
+        $this->assertDatabaseHas('blocks', [
+            'requestor_id' => $andy->id,
+            'target_id' => $john->id
+        ]);
+    }
+
+    /** @test */
+    public function Block_RequestorHasAlreadyBlockedTarget_ReturnsFalse()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Block::create(['requestor_id' => $andy->id, 'target_id' => $john->id]);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => 'john@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function Block_PreviousTargetNowWantsToBlockPreviousRequestor_ReturnsTrue()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Block::create(['requestor_id' => $andy->id, 'target_id' => $john->id]);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'john@example.com',
+            'target' => 'andy@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => true,]);
+    }
+
+    /** @test */
+    public function Block_RequestorIsSamePersonAsTarget_ReturnsFalse()
+    {
+        User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => 'andy@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function Block_BothUsersAreAlreadyFriends_BothUsersRemainAsFriends()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Friend::create(['user1_id' => $andy->id, 'user2_id' => $john->id]);
+
+        $this->post('/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => 'john@example.com'
+        ]);
+        $this->post('/api/v1/block', [
+            'requestor' => 'john@example.com',
+            'target' => 'andy@example.com'
+        ]);
+
+        $this->assertDatabaseHas('friends', [
+            'user1_id' => $andy->id,
+            'user2_id' => $john->id
+        ]);
+    }
+
+    /** @test */
+    public function Block_AtLeastOneUserDoesntExist_ReturnsFalse()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'nonexistent@example.com',
+            'target' => 'john@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => 'nonexistent@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function Block_InvalidInput_ReturnsStatus400()
+    {
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'target' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'blocker' => 'andy@example.com',
+            'target' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'blocked' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => ['andy@example.com', 'lisa@example.com'],
+            'target' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => ['john@example.com', 'lisa@example.com']
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 123456,
+            'target' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('POST', '/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => 123456
+        ]);
+        $response->assertStatus(400);
+    }
+
+    /** @test */
+    public function Block_RequestContentTypeIsNotJson_ReturnsStatus400()
+    {
+        $response = $this->post('/api/v1/block', [
+            'requestor' => 'andy@example.com',
+            'target' => 'john@example.com'
         ]);
         $response->assertStatus(400);
     }

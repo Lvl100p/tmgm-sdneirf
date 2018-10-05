@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\User;
 use App\Friend;
 use App\Subscription;
+use App\Block;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
@@ -38,6 +39,16 @@ class FriendsMgmtController extends Controller
         $user1 = User::where('email', $data['friends'][0])->first();
         $user2 = User::where('email', $data['friends'][1])->first();
         if ($user1 == null || $user2 == null || $user1->id == $user2->id) {
+            return response()->json($failureArr);
+        }
+        $blockRecord = Block::where([
+            'requestor_id' => $user1->id,
+            'target_id' => $user2->id
+        ])->orWhere([
+            'requestor_id' => $user2->id,
+            'target_id' => $user1->id
+        ])->first();
+        if ($blockRecord != null) {
             return response()->json($failureArr);
         }
 
@@ -207,6 +218,55 @@ class FriendsMgmtController extends Controller
         }
 
         Subscription::create([
+            'requestor_id' => $requestor->id,
+            'target_id' => $target->id
+        ]);
+        return response()->json($successArr);
+    }
+
+    /**
+     * Make the requestor specified in the given request block the target
+     * specified in the given request.
+     *
+     * @param  Request $request
+     * @return Response
+     */
+    public function block(Request $request)
+    {
+        if (!$request->isJson()) {
+            return response('', 400);
+        }
+
+        $data = $request->input();
+        if ($data == null
+            || !array_key_exists('requestor', $data)
+            || !array_key_exists('target', $data)
+            || !is_string($data['requestor'])
+            || !is_string($data['target'])
+        ) {
+            return response('', 400);
+        }
+
+        $successArr = array('success' => true);
+        $failureArr = array('success' => false);
+
+        $requestor = User::where('email', $data['requestor'])->first();
+        $target = User::where('email', $data['target'])->first();
+        if ($requestor == null
+            || $target == null
+            || $requestor->id == $target->id
+        ) {
+            return response()->json($failureArr);
+        }
+
+        $blockRecord = Block::where([
+            'requestor_id' => $requestor->id, 'target_id' => $target->id
+        ])->first();
+        if ($blockRecord != null) {
+            return response()->json($failureArr);
+        }
+
+        Block::create([
             'requestor_id' => $requestor->id,
             'target_id' => $target->id
         ]);

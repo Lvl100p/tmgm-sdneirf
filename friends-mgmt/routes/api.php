@@ -24,3 +24,5 @@ Route::get('/v1/friends-list', 'FriendsMgmtController@getFriendsList');
 Route::get('/v1/common-friends-list', 'FriendsMgmtController@getCommonFriendsList');
 
 Route::post('/v1/subscribe', 'FriendsMgmtController@subscribe');
+
+Route::post('/v1/block', 'FriendsMgmtController@block');
