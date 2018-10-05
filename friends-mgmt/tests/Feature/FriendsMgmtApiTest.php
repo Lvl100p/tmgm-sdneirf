@@ -169,7 +169,7 @@ class FriendsMgmtApiTest extends TestCase
     }
 
     /** @test */
-    public function MakeFriends_InputContentTypeIsNotJson_ReturnsStatus400()
+    public function MakeFriends_RequestContentTypeIsNotJson_ReturnsStatus400()
     {
         $response = $this->post('/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -681,7 +681,7 @@ class FriendsMgmtApiTest extends TestCase
     }
 
     /** @test */
-    public function Subscribe_InputContentTypeIsNotJson_ReturnsStatus400()
+    public function Subscribe_RequestContentTypeIsNotJson_ReturnsStatus400()
     {
         $response = $this->post('/api/v1/subscribe', [
             'requestor' => 'lisa@example.com',
