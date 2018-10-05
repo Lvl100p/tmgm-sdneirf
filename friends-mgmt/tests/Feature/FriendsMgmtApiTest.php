@@ -1004,4 +1004,284 @@ class FriendsMgmtApiTest extends TestCase
         ]);
         $response->assertStatus(400);
     }
+
+    /** @test */
+    public function GetUpdateRecipients_SendersFriendDidntBlockSender_ReturnsCorrectJson()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Friend::create([
+            'user1_id' => $andy->id,
+            'user2_id' => $john->id
+        ]);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 'Hello World!'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'recipients' => ['andy@example.com']
+            ]);
+    }
+
+    /** @test */
+    public function GetUpdateRecipients_SendersFriendBlockedSender_ReturnsCorrectJson()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Friend::create([
+            'user1_id' => $andy->id,
+            'user2_id' => $john->id
+        ]);
+        Block::create([
+            'requestor_id' => $andy->id,
+            'target_id' => $john->id
+        ]);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 'Hello World!'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'recipients' => []
+            ]);
+    }
+
+    /** @test */
+    public function GetUpdateRecipients_SubscriberDidntBlockSender_ReturnsCorrectJson()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Subscription::create([
+            'requestor_id' => $andy->id,
+            'target_id' => $john->id
+        ]);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 'Hello World!'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'recipients' => ['andy@example.com']
+            ]);
+    }
+
+    /** @test */
+    public function GetUpdateRecipients_SubscriberBlockedSender_ReturnsCorrectJson()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Subscription::create([
+            'requestor_id' => $andy->id,
+            'target_id' => $john->id
+        ]);
+        Block::create([
+            'requestor_id' => $andy->id,
+            'target_id' => $john->id
+        ]);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 'Hello World!'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'recipients' => []
+            ]);
+    }
+
+    /** @test */
+    public function GetUpdateRecipients_MentionedUserDidntBlockSender_ReturnsCorrectJson()
+    {
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $kate = User::create([
+            'name' => 'Kate',
+            'email' => 'kate@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 'Hello World! kate@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'recipients' => ['kate@example.com']
+            ]);
+    }
+
+    /** @test */
+    public function GetUpdateRecipients_MentionedUserBlockedSender_ReturnsCorrectJson()
+    {
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $kate = User::create([
+            'name' => 'Kate',
+            'email' => 'kate@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Block::create([
+            'requestor_id' => $kate->id,
+            'target_id' => $john->id
+        ]);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 'Hello World! kate@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'recipients' => []
+            ]);
+    }
+
+    /** @test */
+    public function GetUpdateRecipients_SenderDoesntExist_ReturnsFalse()
+    {
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 'Hello World! kate@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson(['success' => false,]);
+    }
+
+    /** @test */
+    public function GetUpdateRecipients_RecipientIsSubscriberAndFriendAndMentionedUser_NoDuplicatesInReturnedJson()
+    {
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $kate = User::create([
+            'name' => 'Kate',
+            'email' => 'kate@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        Friend::create([
+            'user1_id' => $john->id,
+            'user2_id' => $kate->id
+        ]);
+        Subscription::create([
+            'requestor_id' => $kate->id,
+            'target_id' => $john->id
+        ]);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 'Hello World! kate@example.com'
+        ]);
+        $response
+            ->assertStatus(200)
+            ->assertExactJson([
+                'success' => true,
+                'recipients' => ['kate@example.com']
+            ]);
+    }
+
+    /** @test */
+    public function GetUpdateRecipients_InvalidInput_ReturnsStatus400()
+    {
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'text' => 'Hello World! kate@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'updater' => 'john@example.com',
+            'text' => 'Hello World! kate@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'update' => 'Hello World! kate@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => ['john@example.com', 'lisa@example.com'],
+            'text' => 'Hello World! kate@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => ['Hello World! kate@example.com', 'sometext']
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 123456,
+            'text' => 'Hello World! kate@example.com'
+        ]);
+        $response->assertStatus(400);
+
+        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+            'sender' => 'john@example.com',
+            'text' => 123456
+        ]);
+        $response->assertStatus(400);
+    }
 }

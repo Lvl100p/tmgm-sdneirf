@@ -336,4 +336,80 @@ class FriendsMgmtController extends Controller
             'target_id' => $targetId
         ]);
     }
+
+    /**
+     * Get the list of users who can receive updates from the sender
+     * specified in the given request.
+     *
+     * @param  Request $request
+     * @return Response
+     */
+    public function getUpdateRecipients(Request $request)
+    {
+        $data = $request->input();
+        if ($data == null
+            || !array_key_exists('sender', $data)
+            || !array_key_exists('text', $data)
+            || !is_string($data['sender'])
+            || !is_string($data['text'])
+        ) {
+            return response('', 400);
+        }
+
+        $successArr = array('success' => true, 'recipients' => []);
+        $failureArr = array('success' => false);
+
+        $sender = $this->getUserRecordByEmail($data['sender']);
+        if ($sender == null) {
+            return response()->json($failureArr);
+        }
+
+        $successArr['recipients']
+            = $this->getRecipientsEmailList($sender, $data['text']);
+        return response()->json($successArr);
+    }
+
+    private function getRecipientsEmailList(User $sender, $text) {
+        $subscribersEmailList = $this->getSubscribersEmailList($sender->id);
+        $sendersFriendsEmailList = $this->getFriendsEmailList($sender->id);
+        $mentionedUsersEmailList = $this->getMentionedUsersEmailList($text);
+        $recipientsEmailList = array_unique(array_merge(
+            $subscribersEmailList,
+            $sendersFriendsEmailList,
+            $mentionedUsersEmailList
+        ));
+
+        foreach ($recipientsEmailList as $key => $recipientEmail) {
+            $recipient = $this->getUserRecordByEmail($recipientEmail);
+            if ($this->hasBlocked($recipient, $sender)) {
+                unset($recipientsEmailList[$key]);
+            }
+        }
+
+        return $recipientsEmailList;
+    }
+
+    private function getSubscribersEmailList($senderId) {
+        $subscribersEmailList = [];
+        $subscriptionRecords = Subscription::where([
+            'target_id' => $senderId
+        ])->get();
+        foreach ($subscriptionRecords as $subscriptionRecord) {
+            $subscriberEmail = $this->getUserRecordById(
+                $subscriptionRecord->requestor_id
+            )->email;
+            array_push($subscribersEmailList, $subscriberEmail);
+        }
+
+        return $subscribersEmailList;
+    }
+
+    private function getMentionedUsersEmailList($text) {
+        $matches = [];
+        $pattern
+            = '/[a-z0-9_\-\+\.]+@[a-z0-9\-]+\.([a-z]{2,4})(?:\.[a-z]{2})?/i';
+        preg_match_all($pattern, $text, $matches);
+
+        return $matches[0];
+    }
 }
