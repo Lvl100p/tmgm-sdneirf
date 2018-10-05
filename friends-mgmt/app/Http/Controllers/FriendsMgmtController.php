@@ -36,40 +36,66 @@ class FriendsMgmtController extends Controller
         $successArr = array('success' => true);
         $failureArr = array('success' => false);
 
-        $user1 = User::where('email', $data['friends'][0])->first();
-        $user2 = User::where('email', $data['friends'][1])->first();
-        if ($user1 == null || $user2 == null || $user1->id == $user2->id) {
-            return response()->json($failureArr);
-        }
-        $blockRecord = Block::where([
-            'requestor_id' => $user1->id,
-            'target_id' => $user2->id
-        ])->orWhere([
-            'requestor_id' => $user2->id,
-            'target_id' => $user1->id
-        ])->first();
-        if ($blockRecord != null) {
+        $user1 = $this->getUserRecordByEmail($data['friends'][0]);
+        $user2 = $this->getUserRecordByEmail($data['friends'][1]);
+        if ($user1 == null
+            || $user2 == null
+            || $this->cannotBeFriends($user1, $user2)
+        ) {
             return response()->json($failureArr);
         }
 
-        // This ensures that when we insert a record into the friends table,
-        // the user1_id will always be numerically smaller than user2_id
-        if ($user1->id > $user2->id) {
-            $temp = $user1->id;
-            $user1->id = $user2->id;
-            $user2->id = $temp;
-        }
-
-        $friendRecord = Friend::where([
-            'user1_id' => $user1->id,
-            'user2_id' => $user2->id
-        ])->first();
-        if ($friendRecord != null) {
-            return response()->json($failureArr);
-        }
-        Friend::create(['user1_id' => $user1->id, 'user2_id' => $user2->id]);
+        $this->createFriendRecord($user1->id, $user2->id);
 
         return response()->json($successArr);
+    }
+
+    private function getUserRecordByEmail($userEmail) {
+        return User::where('email', $userEmail)->first();
+    }
+
+    private function cannotBeFriends(User $user1, User $user2) {
+        return $this->areSameUser($user1, $user2)
+            || $this->hasBlocked($user1, $user2)
+            || $this->hasBlocked($user2, $user1)
+            || $this->areFriends($user1, $user2);
+    }
+
+    private function areSameUser(User $user1, User $user2) {
+        return $user1->id == $user2->id;
+    }
+
+    private function hasBlocked(User $requestor, User $target) {
+        $blockRecord = $this->getBlockRecord(
+            $requestor->id, $target->id
+        );
+        return $blockRecord != null;
+    }
+
+    private function getBlockRecord($requestorId, $targetId) {
+        return Block::where([
+            'requestor_id' => $requestorId, 'target_id' => $targetId
+        ])->first();
+    }
+
+    private function areFriends(User $user1, User $user2) {
+        // All friend records in the friends table have the smaller of
+        // both ids as user1_id. This is to simplify database operations.
+        $friendRecord = Friend::where([
+            'user1_id' => min($user1->id, $user2->id),
+            'user2_id' => max($user1->id, $user2->id)
+        ])->first();
+
+        return $friendRecord != null;
+    }
+
+    private function createFriendRecord($user1Id, $user2Id) {
+        // This ensures that when we insert a record into the friends table,
+        // the user1_id will always be numerically smaller than user2_id.
+        Friend::create([
+            'user1_id' => min($user1Id, $user2Id),
+            'user2_id' => max($user1Id, $user2Id)
+        ]);
     }
 
     /**
@@ -90,32 +116,48 @@ class FriendsMgmtController extends Controller
 
         $failureArr = array('success' => false);
 
-        $user = User::where('email', $data['email'])->first();
+        $user = $this->getUserRecordByEmail($data['email']);
         if ($user == null) {
             return response()->json($failureArr);
         }
 
-        $friendRecords = Friend::where([
-            'user1_id' => $user->id,
-        ])->orWhere([
-            'user2_id' => $user->id,
-        ])->get();
-
-        $friendsList = [];
-        foreach ($friendRecords as $friendRecord) {
-            $friendId = $friendRecord->user1_id == $user->id
-                ? $friendRecord->user2_id
-                : $friendRecord->user1_id;
-            $friendEmail = User::where('id', $friendId)->first()->email;
-            array_push($friendsList, $friendEmail);
-        }
+        $friendsEmailList = $this->getFriendsEmailList($user->id);
 
         $successArr = array(
             'success' => true,
-            'friends' => $friendsList,
-            'count' => count($friendsList)
+            'friends' => $friendsEmailList,
+            'count' => count($friendsEmailList)
         );
         return response()->json($successArr);
+    }
+
+    private function getFriendsEmailList($userId) {
+        $friendRecords = $this->getFriendRecords($userId);
+
+        $friendsEmailList = [];
+        foreach ($friendRecords as $friendRecord) {
+            $friendId = $friendRecord->user1_id == $userId
+                ? $friendRecord->user2_id
+                : $friendRecord->user1_id;
+            $friendEmail = $this->getUserRecordById($friendId)->email;
+            array_push($friendsEmailList, $friendEmail);
+        }
+
+        return $friendsEmailList;
+    }
+
+    private function getFriendRecords($userId) {
+        $friendRecords = Friend::where([
+            'user1_id' => $userId,
+        ])->orWhere([
+            'user2_id' => $userId,
+        ])->get();
+
+        return $friendRecords;
+    }
+
+    private function getUserRecordById($userId) {
+        return User::where('id', $userId)->first();
     }
 
     /**
@@ -139,40 +181,50 @@ class FriendsMgmtController extends Controller
 
         $failureArr = array('success' => false);
 
-        $user1 = User::where('email', $data['friends'][0])->first();
-        $user2 = User::where('email', $data['friends'][1])->first();
-        if ($user1 == null || $user2 == null || $user1->id == $user2->id) {
+        $user1 = $this->getUserRecordByEmail($data['friends'][0]);
+        $user2 = $this->getUserRecordByEmail($data['friends'][1]);
+        if ($user1 == null
+            || $user2 == null
+            || $this->areSameUser($user1, $user2)
+        ) {
             return response()->json($failureArr);
         }
 
-        $request->merge([
-            'email' => $data['friends'][0]
-        ]);
-        $user1FriendsList = json_decode(
-            $this->getFriendsList($request)->content(), true
-        )['friends'];
-
-        $commonFriends = [];
-        foreach ($user1FriendsList as $user1Friend) {
-            $user1FriendId = User::where('email', $user1Friend)->first()->id;
-            $smallerId = $user2->id < $user1FriendId
-                ? $user2->id
-                : $user1FriendId;
-            $largerId = $smallerId == $user2->id ? $user1FriendId : $user2->id;
-            $friendRecord = Friend::where([
-                'user1_id' => $smallerId, 'user2_id' => $largerId
-            ])->first();
-            if ($friendRecord != null) {
-                array_push($commonFriends, $user1Friend);
-            }
-        }
+        $commonFriendsEmailList = $this->getCommonFriendsEmailList(
+            $request,
+            $user1,
+            $user2
+        );
 
         $successArr = array(
             'success' => true,
-            'friends' => $commonFriends,
-            'count' => count($commonFriends)
+            'friends' => $commonFriendsEmailList,
+            'count' => count($commonFriendsEmailList)
         );
         return response()->json($successArr);
+    }
+
+    private function getCommonFriendsEmailList(Request $request, User $user1, User $user2) {
+        // Reusing the web API for retrieving friends list. That API
+        // expects an 'email' property, so we can merge it into the
+        // current request and conveniently reuse that request for
+        // making the API call.
+        $request->merge([
+            'email' => $user1->email
+        ]);
+        $user1FriendsEmailList = json_decode(
+            $this->getFriendsList($request)->content(), true
+        )['friends'];
+
+        $commonFriendsEmailList = [];
+        foreach ($user1FriendsEmailList as $user1FriendEmail) {
+            $user1Friend = $this->getUserRecordByEmail($user1FriendEmail);
+            if ($this->areFriends($user1Friend, $user2)) {
+                array_push($commonFriendsEmailList, $user1FriendEmail);
+            }
+        }
+
+        return $commonFriendsEmailList;
     }
 
     /**
@@ -201,27 +253,40 @@ class FriendsMgmtController extends Controller
         $successArr = array('success' => true);
         $failureArr = array('success' => false);
 
-        $requestor = User::where('email', $data['requestor'])->first();
-        $target = User::where('email', $data['target'])->first();
+        $requestor = $this->getUserRecordByEmail($data['requestor']);
+        $target = $this->getUserRecordByEmail($data['target']);
         if ($requestor == null
             || $target == null
-            || $requestor->id == $target->id
+            || $this->areSameUser($requestor, $target)
+            || $this->alreadySubscribedTo($requestor, $target)
         ) {
             return response()->json($failureArr);
         }
 
-        $subscriptionRecord = Subscription::where([
-            'requestor_id' => $requestor->id, 'target_id' => $target->id
-        ])->first();
-        if ($subscriptionRecord != null) {
-            return response()->json($failureArr);
-        }
+        $this->createSubscriptionRecord($requestor->id, $target->id);
 
-        Subscription::create([
-            'requestor_id' => $requestor->id,
-            'target_id' => $target->id
-        ]);
         return response()->json($successArr);
+    }
+
+    private function alreadySubscribedTo(User $requestor, User $target) {
+        $subscriptionRecord = $this->getSubscriptionRecord(
+            $requestor->id, $target->id
+        );
+
+        return $subscriptionRecord != null;
+    }
+
+    private function getSubscriptionRecord($requestorId, $targetId) {
+        return Subscription::where([
+            'requestor_id' => $requestorId, 'target_id' => $targetId
+        ])->first();
+    }
+
+    private function createSubscriptionRecord($requestorId, $targetId) {
+        Subscription::create([
+            'requestor_id' => $requestorId,
+            'target_id' => $targetId
+        ]);
     }
 
     /**
@@ -250,26 +315,25 @@ class FriendsMgmtController extends Controller
         $successArr = array('success' => true);
         $failureArr = array('success' => false);
 
-        $requestor = User::where('email', $data['requestor'])->first();
-        $target = User::where('email', $data['target'])->first();
+        $requestor = $this->getUserRecordByEmail($data['requestor']);
+        $target = $this->getUserRecordByEmail($data['target']);
         if ($requestor == null
             || $target == null
-            || $requestor->id == $target->id
+            || $this->areSameUser($requestor, $target)
+            || $this->hasBlocked($requestor, $target)
         ) {
             return response()->json($failureArr);
         }
 
-        $blockRecord = Block::where([
-            'requestor_id' => $requestor->id, 'target_id' => $target->id
-        ])->first();
-        if ($blockRecord != null) {
-            return response()->json($failureArr);
-        }
+        $this->createBlockRecord($requestor->id, $target->id);
 
-        Block::create([
-            'requestor_id' => $requestor->id,
-            'target_id' => $target->id
-        ]);
         return response()->json($successArr);
+    }
+
+    private function createBlockRecord($requestorId, $targetId) {
+        Block::create([
+            'requestor_id' => $requestorId,
+            'target_id' => $targetId
+        ]);
     }
 }
