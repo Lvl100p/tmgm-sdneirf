@@ -209,6 +209,31 @@ class FriendsMgmtApiTest extends TestCase
     }
 
     /** @test */
+    public function MakeFriends_BothUsersExistAndAreNotFriends_UserIdsNotAddedToSubscriptionsTable()
+    {
+        $andy = User::create([
+            'name' => 'Andy',
+            'email' => 'andy@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $john = User::create([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $this->json('POST', '/api/v1/make-friends', [
+            'friends' => ['andy@example.com', 'john@example.com']
+        ]);
+        $this->assertDatabaseMissing('subscriptions', [
+            'requestor_id' => $john->id, 'target_id' => $andy->id
+        ]);
+        $this->assertDatabaseMissing('subscriptions', [
+            'requestor_id' => $andy->id, 'target_id' => $john->id
+        ]);
+    }
+
+    /** @test */
     public function GetFriendsList_UserExistsAndHasOneFriend_ReturnsCorrectJson()
     {
         $andy = User::create([
