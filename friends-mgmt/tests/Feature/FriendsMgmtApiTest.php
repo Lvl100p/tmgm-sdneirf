@@ -617,6 +617,31 @@ class FriendsMgmtApiTest extends TestCase
     }
 
     /** @test */
+    public function Subscribe_RequestorIsNotSubscribedToTarget_UserIdsNotAddedToFriendsTable()
+    {
+        $lisa = User::create([
+            'name' => 'Lisa',
+            'email' => 'lisa@example.com',
+            'password' => bcrypt('secret')
+        ]);
+        $kate = User::create([
+            'name' => 'Kate',
+            'email' => 'kate@example.com',
+            'password' => bcrypt('secret')
+        ]);
+
+        $this->json('POST', '/api/v1/subscribe', [
+            'requestor' => 'lisa@example.com',
+            'target' => 'kate@example.com'
+        ]);
+
+        $this->assertDatabaseMissing('friends', [
+            'user1_id' => $lisa->id,
+            'user2_id' => $kate->id
+        ]);
+    }
+
+    /** @test */
     public function Subscribe_RequestorIsAlreadySubscribedToTarget_ReturnsFalse()
     {
         $lisa = User::create([
