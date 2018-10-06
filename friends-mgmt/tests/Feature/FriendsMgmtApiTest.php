@@ -6,6 +6,10 @@ use App\User;
 use App\Friend;
 use App\Subscription;
 use App\Block;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\FriendController;
+use App\Http\Controllers\BlockController;
+use App\Http\Controllers\SubscriptionController;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -16,16 +20,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_BothUsersExistAndAreNotFriends_ReturnsTrue()
     {
-        User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
+        UserController::create('john');
 
         $response = $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -38,16 +34,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_BothUsersExistAndAreNotFriends_UserIdsAddedToFriendsTableWithNumericallySmallerIdAsUser1Id()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
 
         $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -65,11 +53,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_BothUsersExistAndAreSamePerson_ReturnsFalse()
     {
-        User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
 
         $response = $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'andy@example.com']
@@ -82,16 +66,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_AtLeastOneUserDoesntExist_ReturnsFalse()
     {
-        User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
+        UserController::create('john');
 
         $response = $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['nonexistent@example.com','john@example.com']
@@ -111,17 +87,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_BothUsersExistButAreAlreadyFriends_ReturnsFalse()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create(['user1_id' => $andy->id, 'user2_id' => $john->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        FriendController::create($andy->id, $john->id);
 
         $response = $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -181,17 +149,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_AtLeastOneUserIsBlockedByOther_ReturnsFalse()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Block::create(['requestor_id' => $andy->id, 'target_id' => $john->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        BlockController::create($andy->id, $john->id);
 
         $response = $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -211,16 +171,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_BothUsersExistAndAreNotFriends_UserIdsNotAddedToSubscriptionsTable()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
 
         $this->json('POST', '/api/v1/make-friends', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -236,17 +188,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetFriendsList_UserExistsAndHasOneFriend_ReturnsCorrectJson()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create(['user1_id' => $andy->id, 'user2_id' => $john->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        FriendController::create($andy->id, $john->id);
 
         $response = $this->json('GET', '/api/v1/friends-list', [
             'email' => 'andy@example.com'
@@ -274,24 +218,12 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetFriendsList_UserExistsAndHasMultipleFriends_ReturnsCorrectJson()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $common = User::create([
-            'name' => 'Common',
-            'email' => 'common@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create(['user1_id' => $andy->id, 'user2_id' => $john->id]);
-        Friend::create(['user1_id' => $andy->id, 'user2_id' => $common->id]);
-        Friend::create(['user1_id' => $john->id, 'user2_id' => $common->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        $common = UserController::create('common');
+        FriendController::create($andy->id, $john->id);
+        FriendController::create($andy->id, $common->id);
+        FriendController::create($john->id, $common->id);
 
         $response = $this->json('GET', '/api/v1/friends-list', [
             'email' => 'andy@example.com'
@@ -319,11 +251,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetFriendsList_UserExistsAndHasNoFriends_ReturnsCorrectJson()
     {
-        User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
 
         $response = $this->json('GET', '/api/v1/friends-list', [
             'email' => 'andy@example.com'
@@ -371,16 +299,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetCommonFriendsList_NoFriendsInCommon_ReturnsCorrectJson()
     {
-        User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
+        UserController::create('john');
 
         $response = $this->json('GET', '/api/v1/common-friends-list', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -397,23 +317,11 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetCommonFriendsList_OneFriendInCommon_ReturnsCorrectJson()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $common = User::create([
-            'name' => 'Common',
-            'email' => 'common@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create(['user1_id' => $andy->id, 'user2_id' => $common->id]);
-        Friend::create(['user1_id' => $john->id, 'user2_id' => $common->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        $common = UserController::create('common');
+        FriendController::create($andy->id, $common->id);
+        FriendController::create($john->id, $common->id);
 
         $response = $this->json('GET', '/api/v1/common-friends-list', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -441,30 +349,14 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetCommonFriendsList_MultipleFriendsInCommon_ReturnsCorrectJson()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $common1 = User::create([
-            'name' => 'Common1',
-            'email' => 'common1@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $common2 = User::create([
-            'name' => 'Common2',
-            'email' => 'common2@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create(['user1_id' => $andy->id, 'user2_id' => $common1->id]);
-        Friend::create(['user1_id' => $andy->id, 'user2_id' => $common2->id]);
-        Friend::create(['user1_id' => $john->id, 'user2_id' => $common1->id]);
-        Friend::create(['user1_id' => $john->id, 'user2_id' => $common2->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        $common1 = UserController::create('common1');
+        $common2 = UserController::create('common2');
+        FriendController::create($andy->id, $common1->id);
+        FriendController::create($andy->id, $common2->id);
+        FriendController::create($john->id, $common1->id);
+        FriendController::create($john->id, $common2->id);
 
         $response = $this->json('GET', '/api/v1/common-friends-list', [
             'friends' => ['andy@example.com', 'john@example.com']
@@ -492,11 +384,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetCommonFriendsList_BothUsersExistAndAreSamePerson_ReturnsFalse()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
 
         $response = $this->json('GET', '/api/v1/common-friends-list', [
             'friends' => ['andy@example.com', 'andy@example.com']
@@ -509,16 +397,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetCommonFriendsList_AtLeastOneUserDoesntExist_ReturnsFalse()
     {
-        User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
+        UserController::create('john');
 
         $response = $this->json('GET', '/api/v1/common-friends-list', [
             'friends' => ['andy@example.com', 'nonexistent@example.com']
@@ -571,16 +451,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Subscribe_RequestorIsNotSubscribedToTarget_ReturnsTrue()
     {
-        User::create([
-            'name' => 'Lisa',
-            'email' => 'lisa@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        User::create([
-            'name' => 'Kate',
-            'email' => 'kate@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('lisa');
+        UserController::create('kate');
 
         $response = $this->json('POST', '/api/v1/subscribe', [
             'requestor' => 'lisa@example.com',
@@ -594,16 +466,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Subscribe_RequestorIsNotSubscribedToTarget_UserIdsAddedToSubscriptionsTable()
     {
-        $lisa = User::create([
-            'name' => 'Lisa',
-            'email' => 'lisa@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $kate = User::create([
-            'name' => 'Kate',
-            'email' => 'kate@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        $lisa = UserController::create('lisa');
+        $kate = UserController::create('kate');
 
         $this->json('POST', '/api/v1/subscribe', [
             'requestor' => 'lisa@example.com',
@@ -619,16 +483,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Subscribe_RequestorIsNotSubscribedToTarget_UserIdsNotAddedToFriendsTable()
     {
-        $lisa = User::create([
-            'name' => 'Lisa',
-            'email' => 'lisa@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $kate = User::create([
-            'name' => 'Kate',
-            'email' => 'kate@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        $lisa = UserController::create('lisa');
+        $kate = UserController::create('kate');
 
         $this->json('POST', '/api/v1/subscribe', [
             'requestor' => 'lisa@example.com',
@@ -644,20 +500,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Subscribe_RequestorIsAlreadySubscribedToTarget_ReturnsFalse()
     {
-        $lisa = User::create([
-            'name' => 'Lisa',
-            'email' => 'lisa@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $kate = User::create([
-            'name' => 'Kate',
-            'email' => 'kate@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Subscription::create([
-            'requestor_id' => $lisa->id ,
-            'target_id' => $kate->id
-        ]);
+        $lisa = UserController::create('lisa');
+        $kate = UserController::create('kate');
+        SubscriptionController::create($lisa->id, $kate->id);
 
         $response = $this->json('POST', '/api/v1/subscribe', [
             'requestor' => 'lisa@example.com',
@@ -671,11 +516,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Subscribe_RequestorIsSamePersonAsTarget_ReturnsFalse()
     {
-        User::create([
-            'name' => 'Lisa',
-            'email' => 'lisa@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('lisa');
 
         $response = $this->json('POST', '/api/v1/subscribe', [
             'requestor' => 'lisa@example.com',
@@ -689,16 +530,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Subscribe_AtLeastOneUserDoesntExist_ReturnsFalse()
     {
-        User::create([
-            'name' => 'Lisa',
-            'email' => 'lisa@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        User::create([
-            'name' => 'Kate',
-            'email' => 'kate@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('lisa');
+        UserController::create('kate');
 
         $response = $this->json('POST', '/api/v1/subscribe', [
             'requestor' => 'nonexistent@example.com',
@@ -774,16 +607,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Block_RequestorHasNotBlockedTarget_ReturnsTrue()
     {
-        User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
+        UserController::create('john');
 
         $response = $this->json('POST', '/api/v1/block', [
             'requestor' => 'andy@example.com',
@@ -797,16 +622,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Block_RequestorHasNotBlockedTarget_UserIdsAddedToBlocksTable()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
 
         $response = $this->json('POST', '/api/v1/block', [
             'requestor' => 'andy@example.com',
@@ -821,17 +638,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Block_RequestorHasAlreadyBlockedTarget_ReturnsFalse()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Block::create(['requestor_id' => $andy->id, 'target_id' => $john->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        BlockController::create($andy->id, $john->id);
 
         $response = $this->json('POST', '/api/v1/block', [
             'requestor' => 'andy@example.com',
@@ -845,17 +654,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Block_PreviousTargetNowWantsToBlockPreviousRequestor_ReturnsTrue()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Block::create(['requestor_id' => $andy->id, 'target_id' => $john->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        BlockController::create($andy->id, $john->id);
 
         $response = $this->json('POST', '/api/v1/block', [
             'requestor' => 'john@example.com',
@@ -869,11 +670,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Block_RequestorIsSamePersonAsTarget_ReturnsFalse()
     {
-        User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
 
         $response = $this->json('POST', '/api/v1/block', [
             'requestor' => 'andy@example.com',
@@ -887,17 +684,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Block_BothUsersAreAlreadyFriends_BothUsersRemainAsFriends()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create(['user1_id' => $andy->id, 'user2_id' => $john->id]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        FriendController::create($andy->id, $john->id);
 
         $this->post('/api/v1/block', [
             'requestor' => 'andy@example.com',
@@ -917,16 +706,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function Block_AtLeastOneUserDoesntExist_ReturnsFalse()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('andy');
+        UserController::create('john');
 
         $response = $this->json('POST', '/api/v1/block', [
             'requestor' => 'nonexistent@example.com',
@@ -1008,20 +789,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_SendersFriendDidntBlockSender_ReturnsCorrectJson()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create([
-            'user1_id' => $andy->id,
-            'user2_id' => $john->id
-        ]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        FriendController::create($andy->id, $john->id);
 
         $response = $this->json('GET', '/api/v1/can-receive-updates', [
             'sender' => 'john@example.com',
@@ -1038,24 +808,10 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_SendersFriendBlockedSender_ReturnsCorrectJson()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create([
-            'user1_id' => $andy->id,
-            'user2_id' => $john->id
-        ]);
-        Block::create([
-            'requestor_id' => $andy->id,
-            'target_id' => $john->id
-        ]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        FriendController::create($andy->id, $john->id);
+        BlockController::create($andy->id, $john->id);
 
         $response = $this->json('GET', '/api/v1/can-receive-updates', [
             'sender' => 'john@example.com',
@@ -1072,20 +828,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_SubscriberDidntBlockSender_ReturnsCorrectJson()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Subscription::create([
-            'requestor_id' => $andy->id,
-            'target_id' => $john->id
-        ]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        SubscriptionController::create($andy->id, $john->id);
 
         $response = $this->json('GET', '/api/v1/can-receive-updates', [
             'sender' => 'john@example.com',
@@ -1102,24 +847,10 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_SubscriberBlockedSender_ReturnsCorrectJson()
     {
-        $andy = User::create([
-            'name' => 'Andy',
-            'email' => 'andy@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Subscription::create([
-            'requestor_id' => $andy->id,
-            'target_id' => $john->id
-        ]);
-        Block::create([
-            'requestor_id' => $andy->id,
-            'target_id' => $john->id
-        ]);
+        $andy = UserController::create('andy');
+        $john = UserController::create('john');
+        SubscriptionController::create($andy->id, $john->id);
+        BlockController::create($andy->id, $john->id);
 
         $response = $this->json('GET', '/api/v1/can-receive-updates', [
             'sender' => 'john@example.com',
@@ -1136,16 +867,8 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_MentionedUserDidntBlockSender_ReturnsCorrectJson()
     {
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $kate = User::create([
-            'name' => 'Kate',
-            'email' => 'kate@example.com',
-            'password' => bcrypt('secret')
-        ]);
+        UserController::create('john');
+        UserController::create('kate');
 
         $response = $this->json('GET', '/api/v1/can-receive-updates', [
             'sender' => 'john@example.com',
@@ -1162,20 +885,9 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_MentionedUserBlockedSender_ReturnsCorrectJson()
     {
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $kate = User::create([
-            'name' => 'Kate',
-            'email' => 'kate@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Block::create([
-            'requestor_id' => $kate->id,
-            'target_id' => $john->id
-        ]);
+        $john = UserController::create('john');
+        $kate = UserController::create('kate');
+        BlockController::create($kate->id, $john->id);
 
         $response = $this->json('GET', '/api/v1/can-receive-updates', [
             'sender' => 'john@example.com',
@@ -1204,24 +916,10 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_RecipientIsSubscriberAndFriendAndMentionedUser_NoDuplicatesInReturnedJson()
     {
-        $john = User::create([
-            'name' => 'John',
-            'email' => 'john@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        $kate = User::create([
-            'name' => 'Kate',
-            'email' => 'kate@example.com',
-            'password' => bcrypt('secret')
-        ]);
-        Friend::create([
-            'user1_id' => $john->id,
-            'user2_id' => $kate->id
-        ]);
-        Subscription::create([
-            'requestor_id' => $kate->id,
-            'target_id' => $john->id
-        ]);
+        $john = UserController::create('john');
+        $kate = UserController::create('kate');
+        FriendController::create($john->id, $kate->id);
+        SubscriptionController::create($kate->id, $john->id);
 
         $response = $this->json('GET', '/api/v1/can-receive-updates', [
             'sender' => 'john@example.com',
