@@ -12,6 +12,27 @@ use Illuminate\Http\Request;
 class FriendsMgmtController extends Controller
 {
     /**
+     * Instantiate a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            $response = $next($request);
+
+            // Laravel seems to return 422 on validation failures,
+            // but it seems more appropriate to return 400 instead,
+            // so we introduce a middleware for intercepting 422
+            // responses and returning 400 instead.
+            if ($response->status() == 422) {
+                return response('', 400);
+            }
+            return $response;
+        });
+    }
+
+    /**
      * Make both users specified in the given request as friends.
      *
      * @param  Request $request
@@ -23,15 +44,10 @@ class FriendsMgmtController extends Controller
             return response('', 400);
         }
 
-        $data = $request->input();
-        if ($data == null
-            || !array_key_exists('friends', $data)
-            || count($data['friends']) != 2
-            || !is_string($data['friends'][0])
-            || !is_string($data['friends'][1])
-        ) {
-            return response('', 400);
-        }
+        $data = $request->validate([
+            'friends' => 'required|array|size:2',
+            'friends.*' => 'required|email'
+        ]);
 
         $successArr = array('success' => true);
         $failureArr = array('success' => false);
@@ -106,13 +122,9 @@ class FriendsMgmtController extends Controller
      */
     public function getFriendsList(Request $request)
     {
-        $data = $request->input();
-        if ($data == null
-            || !array_key_exists('email', $data)
-            || !is_string($data['email'])
-        ) {
-            return response('', 400);
-        }
+        $data = $request->validate([
+            'email' => 'required|email'
+        ]);
 
         $failureArr = array('success' => false);
 
@@ -169,15 +181,10 @@ class FriendsMgmtController extends Controller
      */
     public function getCommonFriendsList(Request $request)
     {
-        $data = $request->input();
-        if ($data == null
-            || !array_key_exists('friends', $data)
-            || count($data['friends']) != 2
-            || !is_string($data['friends'][0])
-            || !is_string($data['friends'][1])
-        ) {
-            return response('', 400);
-        }
+        $data = $request->validate([
+            'friends' => 'required|array|size:2',
+            'friends.*' => 'required|email'
+        ]);
 
         $failureArr = array('success' => false);
 
@@ -240,15 +247,10 @@ class FriendsMgmtController extends Controller
             return response('', 400);
         }
 
-        $data = $request->input();
-        if ($data == null
-            || !array_key_exists('requestor', $data)
-            || !array_key_exists('target', $data)
-            || !is_string($data['requestor'])
-            || !is_string($data['target'])
-        ) {
-            return response('', 400);
-        }
+        $data = $request->validate([
+            'requestor' => 'required|email',
+            'target' => 'required|email'
+        ]);
 
         $successArr = array('success' => true);
         $failureArr = array('success' => false);
@@ -302,15 +304,10 @@ class FriendsMgmtController extends Controller
             return response('', 400);
         }
 
-        $data = $request->input();
-        if ($data == null
-            || !array_key_exists('requestor', $data)
-            || !array_key_exists('target', $data)
-            || !is_string($data['requestor'])
-            || !is_string($data['target'])
-        ) {
-            return response('', 400);
-        }
+        $data = $request->validate([
+            'requestor' => 'required|email',
+            'target' => 'required|email'
+        ]);
 
         $successArr = array('success' => true);
         $failureArr = array('success' => false);
@@ -346,15 +343,10 @@ class FriendsMgmtController extends Controller
      */
     public function getUpdateRecipients(Request $request)
     {
-        $data = $request->input();
-        if ($data == null
-            || !array_key_exists('sender', $data)
-            || !array_key_exists('text', $data)
-            || !is_string($data['sender'])
-            || !is_string($data['text'])
-        ) {
-            return response('', 400);
-        }
+        $data = $request->validate([
+            'sender' => 'required|email',
+            'text' => 'required|string'
+        ]);
 
         $successArr = array('success' => true, 'recipients' => []);
         $failureArr = array('success' => false);
