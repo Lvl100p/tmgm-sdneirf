@@ -179,3 +179,27 @@ Proposed failure responses:
   "reason": "unregistered email"
 }
 ```
+
+### Database
+
+After successfully completing the installation process, the database will contain the following users:
+```
+andy@example.com
+bob@example.com
+common@example.com
+dave@example.com
+eve@example.com
+frank@example.com
+grace@example.com
+heidi@example.com
+john@example.com
+kate@example.com
+lisa@example.com
+```
+
+Initially, no one is friends with/has subscribed to/has blocked any other user. You may use the provided APIs to create the necessary database state for testing. If you would like to reset the database back to the initial state, run the following commands (in order) from within the guest:
+```
+php artisan migrate:fresh
+php artisan db:seed --class=UsersTableSeeder
+```
+To login to the guest, run `vagrant ssh`.
