@@ -37,11 +37,14 @@ If not, run the following commands:
 sudo chmod -R guo+w storage/
 sudo chmod -R guo+w bootstrap/cache/
 ```
-15. Run `exit` to logout from the guest.
-16. Edit `C:\Windows\System32\drivers\etc\hosts` (with administrator permissions) and add the following:  
+15. Run `composer dump-autoload`.
+16. Run `php artisan migrate`.
+17. Run `php artisan db:seed --class=UsersTableSeeder`.
+18. Run `exit` to logout from the guest.
+19. Edit `C:\Windows\System32\drivers\etc\hosts` (with administrator permissions) and add the following:  
 `192.168.10.10 friends-mgmt.test`.  
 On Mac and Linux, the file is located at `/etc/hosts`.
-17. Check that `http://friends-mgmt.test` is accessible. If not, run `vagrant up --provision` and retry.
+20. Check that `http://friends-mgmt.test` is accessible. If not, run `vagrant up --provision` and retry.
 
 ### API
 
