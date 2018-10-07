@@ -203,3 +203,9 @@ php artisan migrate:fresh
 php artisan db:seed --class=UsersTableSeeder
 ```
 To login to the guest, run `vagrant ssh`.
+
+### Folder structure
+
+The API tests are located at `friends-mgmt/tests/Feature/FriendsMgmtApiTest.php`.  
+The controllers are located at `friends-mgmt/app/Http/Controllers/`.  
+The routes are located at `friends-mgmt/routes/api.php`.
