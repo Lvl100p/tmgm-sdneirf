@@ -42,3 +42,137 @@ sudo chmod -R guo+w bootstrap/cache/
 `192.168.10.10 friends-mgmt.test`.  
 On Mac and Linux, the file is located at `/etc/hosts`.
 17. Check that `http://friends-mgmt.test` is accessible. If not, run `vagrant up --provision` and retry.
+
+### API
+
+For all the listed APIs, the server will return a 400 response if the JSON request is invalid, e.g. missing required keys, invalid email string, wrong data types. If the request includes additional keys that are not understood by the server, they will be ignored.
+
+**POST /api/v1/befriend**  
+Accept: application/json  
+Content-Type: application/json  
+*Create a friend connection between the two emails specified in the JSON request.*  
+
+Proposed failure responses:
+- Both emails are identical
+```
+{
+  "success": false
+  "reason": "same email"
+}
+```
+- At least one email is unregistered
+```
+{
+  "success": false
+  "reason": "unregistered email"
+}
+```
+- Both emails are already friends
+```
+{
+  "success": false
+  "reason": "already friends"
+}
+```
+
+**GET /api/v1/friends**  
+Accept: application/json  
+*Retrieve the friends email list for the email specified in the JSON request.*  
+
+Proposed failure responses:
+- Unregistered email
+```
+{
+  "success": false
+  "reason": "unregistered email"
+}
+```
+
+**GET /api/v1/friends-common**  
+Accept: application/json  
+*Retrieve the common friends email list between both emails specified in the JSON request.*  
+
+Proposed failure responses:
+- Both emails are identical
+```
+{
+  "success": false
+  "reason": "same email"
+}
+```
+- At least one email is unregistered
+```
+{
+  "success": false
+  "reason": "unregistered email"
+}
+```
+
+**POST /api/v1/subscribe**  
+Accept: application/json  
+Content-Type: application/json  
+*Subscribe the requestor email to the target email, both of which are specified in the JSON request.*  
+
+Proposed failure responses:
+- Both emails are identical
+```
+{
+  "success": false
+  "reason": "same email"
+}
+```
+- At least one email is unregistered
+```
+{
+  "success": false
+  "reason": "unregistered email"
+}
+```
+- Requestor email is already subscribed to target email
+```
+{
+  "success": false
+  "reason": "already subscribed"
+}
+```
+
+**POST /api/v1/block**  
+Accept: application/json  
+Content-Type: application/json  
+*Stop the requestor email from receiving updates from the target email, both of which are specified in the JSON request.*  
+
+Proposed failure responses:
+- Both emails are identical
+```
+{
+  "success": false
+  "reason": "same email"
+}
+```
+- At least one email is unregistered
+```
+{
+  "success": false
+  "reason": "unregistered email"
+}
+```
+- Requestor email has already blocked target email
+```
+{
+  "success": false
+  "reason": "already blocked"
+}
+```
+
+**GET /api/v1/recipients**  
+Accept: application/json  
+*Retrieve the list of emails which can receive updates from the sender email specified in the JSON request.*  
+
+Proposed failure responses:
+- Sender email is unregistered
+```
+{
+  "success": false
+  "reason": "unregistered email"
+}
+```
