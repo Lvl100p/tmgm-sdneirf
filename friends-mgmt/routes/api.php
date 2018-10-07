@@ -17,14 +17,14 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/v1/make-friends', 'FriendsMgmtController@makeFriends');
+Route::post('/v1/befriend', 'FriendsMgmtController@makeFriends');
 
-Route::get('/v1/friends-list', 'FriendsMgmtController@getFriendsList');
+Route::get('/v1/friends', 'FriendsMgmtController@getFriendsList');
 
-Route::get('/v1/common-friends-list', 'FriendsMgmtController@getCommonFriendsList');
+Route::get('/v1/friends-common', 'FriendsMgmtController@getCommonFriendsList');
 
 Route::post('/v1/subscribe', 'FriendsMgmtController@subscribe');
 
 Route::post('/v1/block', 'FriendsMgmtController@block');
 
-Route::get('/v1/can-receive-updates', 'FriendsMgmtController@getUpdateRecipients');
+Route::get('/v1/recipients', 'FriendsMgmtController@getUpdateRecipients');

@@ -23,7 +23,7 @@ class FriendsMgmtApiTest extends TestCase
         UserController::create('andy');
         UserController::create('john');
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $response
@@ -37,7 +37,7 @@ class FriendsMgmtApiTest extends TestCase
         $andy = UserController::create('andy');
         $john = UserController::create('john');
 
-        $this->json('POST', '/api/v1/make-friends', [
+        $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
 
@@ -55,7 +55,7 @@ class FriendsMgmtApiTest extends TestCase
     {
         UserController::create('andy');
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com', 'andy@example.com']
         ]);
         $response
@@ -69,14 +69,14 @@ class FriendsMgmtApiTest extends TestCase
         UserController::create('andy');
         UserController::create('john');
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['nonexistent@example.com','john@example.com']
         ]);
         $response
             ->assertStatus(200)
             ->assertExactJson(['success' => false,]);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com', 'nonexistent@example.com']
         ]);
         $response
@@ -91,14 +91,14 @@ class FriendsMgmtApiTest extends TestCase
         $john = UserController::create('john');
         FriendController::create($andy->id, $john->id);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $response
             ->assertStatus(200)
             ->assertExactJson(['success' => false,]);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['john@example.com', 'andy@example.com']
         ]);
         $response
@@ -109,29 +109,29 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_InvalidInput_ReturnsStatus400()
     {
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com']
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'enemies' => ['andy@example.com', 'john@example.com']
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => [
                 'andy@example.com', 'john@example.com', 'kate@example.com'
             ]
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => [123456, 'john@example.com']
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com', 123456]
         ]);
         $response->assertStatus(400);
@@ -140,7 +140,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function MakeFriends_RequestContentTypeIsNotJson_ReturnsStatus400()
     {
-        $response = $this->post('/api/v1/make-friends', [
+        $response = $this->post('/api/v1/befriend', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $response->assertStatus(400);
@@ -153,14 +153,14 @@ class FriendsMgmtApiTest extends TestCase
         $john = UserController::create('john');
         BlockController::create($andy->id, $john->id);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $response
             ->assertStatus(200)
             ->assertExactJson(['success' => false,]);
 
-        $response = $this->json('POST', '/api/v1/make-friends', [
+        $response = $this->json('POST', '/api/v1/befriend', [
             'friends' => ['john@example.com', 'andy@example.com']
         ]);
         $response
@@ -174,7 +174,7 @@ class FriendsMgmtApiTest extends TestCase
         $andy = UserController::create('andy');
         $john = UserController::create('john');
 
-        $this->json('POST', '/api/v1/make-friends', [
+        $this->json('POST', '/api/v1/befriend', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $this->assertDatabaseMissing('subscriptions', [
@@ -192,7 +192,7 @@ class FriendsMgmtApiTest extends TestCase
         $john = UserController::create('john');
         FriendController::create($andy->id, $john->id);
 
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'email' => 'andy@example.com'
         ]);
         $response
@@ -203,7 +203,7 @@ class FriendsMgmtApiTest extends TestCase
                 'count' => 1
             ]);
 
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'email' => 'john@example.com'
         ]);
         $response
@@ -225,7 +225,7 @@ class FriendsMgmtApiTest extends TestCase
         FriendController::create($andy->id, $common->id);
         FriendController::create($john->id, $common->id);
 
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'email' => 'andy@example.com'
         ]);
         $response
@@ -236,7 +236,7 @@ class FriendsMgmtApiTest extends TestCase
                 'count' => 2
             ]);
 
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'email' => 'common@example.com'
         ]);
         $response
@@ -253,7 +253,7 @@ class FriendsMgmtApiTest extends TestCase
     {
         UserController::create('andy');
 
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'email' => 'andy@example.com'
         ]);
         $response
@@ -268,7 +268,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetFriendsList_UserDoesntExist_ReturnsFalse()
     {
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'email' => 'andy@example.com'
         ]);
 
@@ -280,17 +280,17 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetFriendsList_InvalidInput_ReturnsStatus400()
     {
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'email' => ['andy@example.com', 'john@example.com']
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'user' => 'andy@example.com'
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/friends-list', [
+        $response = $this->json('GET', '/api/v1/friends', [
             'email' => 123456
         ]);
         $response->assertStatus(400);
@@ -302,7 +302,7 @@ class FriendsMgmtApiTest extends TestCase
         UserController::create('andy');
         UserController::create('john');
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $response
@@ -323,7 +323,7 @@ class FriendsMgmtApiTest extends TestCase
         FriendController::create($andy->id, $common->id);
         FriendController::create($john->id, $common->id);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $response
@@ -334,7 +334,7 @@ class FriendsMgmtApiTest extends TestCase
                 'count' => 1
             ]);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['john@example.com', 'andy@example.com']
         ]);
         $response
@@ -358,7 +358,7 @@ class FriendsMgmtApiTest extends TestCase
         FriendController::create($john->id, $common1->id);
         FriendController::create($john->id, $common2->id);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['andy@example.com', 'john@example.com']
         ]);
         $response
@@ -369,7 +369,7 @@ class FriendsMgmtApiTest extends TestCase
                 'count' => 2
             ]);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['john@example.com', 'andy@example.com']
         ]);
         $response
@@ -386,7 +386,7 @@ class FriendsMgmtApiTest extends TestCase
     {
         UserController::create('andy');
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['andy@example.com', 'andy@example.com']
         ]);
         $response
@@ -400,14 +400,14 @@ class FriendsMgmtApiTest extends TestCase
         UserController::create('andy');
         UserController::create('john');
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['andy@example.com', 'nonexistent@example.com']
         ]);
         $response
             ->assertStatus(200)
             ->assertExactJson(['success' => false,]);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['nonexistent@example.com', 'john@example.com']
         ]);
         $response
@@ -418,12 +418,12 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetCommonFriendsList_InvalidInput_ReturnsStatus400()
     {
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['andy@example.com']
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => [
                 'andy@example.com',
                 'john@example.com',
@@ -432,17 +432,17 @@ class FriendsMgmtApiTest extends TestCase
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'enemies' => ['andy@example.com', 'john@example.com']
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => [123456, 'andy@example.com']
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/common-friends-list', [
+        $response = $this->json('GET', '/api/v1/friends-common', [
             'friends' => ['andy@example.com', 123456]
         ]);
         $response->assertStatus(400);
@@ -793,7 +793,7 @@ class FriendsMgmtApiTest extends TestCase
         $john = UserController::create('john');
         FriendController::create($andy->id, $john->id);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 'Hello World!'
         ]);
@@ -813,7 +813,7 @@ class FriendsMgmtApiTest extends TestCase
         FriendController::create($andy->id, $john->id);
         BlockController::create($andy->id, $john->id);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 'Hello World!'
         ]);
@@ -832,7 +832,7 @@ class FriendsMgmtApiTest extends TestCase
         $john = UserController::create('john');
         SubscriptionController::create($andy->id, $john->id);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 'Hello World!'
         ]);
@@ -852,7 +852,7 @@ class FriendsMgmtApiTest extends TestCase
         SubscriptionController::create($andy->id, $john->id);
         BlockController::create($andy->id, $john->id);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 'Hello World!'
         ]);
@@ -870,7 +870,7 @@ class FriendsMgmtApiTest extends TestCase
         UserController::create('john');
         UserController::create('kate');
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 'Hello World! kate@example.com'
         ]);
@@ -889,7 +889,7 @@ class FriendsMgmtApiTest extends TestCase
         $kate = UserController::create('kate');
         BlockController::create($kate->id, $john->id);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 'Hello World! kate@example.com'
         ]);
@@ -904,7 +904,7 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_SenderDoesntExist_ReturnsFalse()
     {
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 'Hello World! kate@example.com'
         ]);
@@ -921,7 +921,7 @@ class FriendsMgmtApiTest extends TestCase
         FriendController::create($john->id, $kate->id);
         SubscriptionController::create($kate->id, $john->id);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 'Hello World! kate@example.com'
         ]);
@@ -936,47 +936,47 @@ class FriendsMgmtApiTest extends TestCase
     /** @test */
     public function GetUpdateRecipients_InvalidInput_ReturnsStatus400()
     {
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com'
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'text' => 'Hello World! kate@example.com'
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'updater' => 'john@example.com',
             'text' => 'Hello World! kate@example.com'
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'update' => 'Hello World! kate@example.com'
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => ['john@example.com', 'lisa@example.com'],
             'text' => 'Hello World! kate@example.com'
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => ['Hello World! kate@example.com', 'sometext']
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 123456,
             'text' => 'Hello World! kate@example.com'
         ]);
         $response->assertStatus(400);
 
-        $response = $this->json('GET', '/api/v1/can-receive-updates', [
+        $response = $this->json('GET', '/api/v1/recipients', [
             'sender' => 'john@example.com',
             'text' => 123456
         ]);
