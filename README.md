@@ -202,7 +202,11 @@ Initially, no one is friends with/has subscribed to/has blocked any other user. 
 php artisan migrate:fresh
 php artisan db:seed --class=UsersTableSeeder
 ```
-To login to the guest, run `vagrant ssh`.
+To login to the guest, run `vagrant ssh` from the root repository folder.
+
+### Running and terminating the web server
+To start the web server, run `vagrant up` from the root repository folder.  
+To terminate the web server, run `vagrant halt` from the root repository folder.
 
 ### Folder structure
 
