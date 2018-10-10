@@ -210,4 +210,6 @@ To terminate the web server, run `vagrant halt` from the root repository folder.
 
 The API tests are located at `friends-mgmt/tests/Feature/FriendsMgmtApiTest.php`.  
 The controllers are located at `friends-mgmt/app/Http/Controllers/`.  
-The routes are located at `friends-mgmt/routes/api.php`.
+The routes are located at `friends-mgmt/routes/api.php`.  
+The database schemas are located at `friends-mgmt/database/migrations/`.  
+
